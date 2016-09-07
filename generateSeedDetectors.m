@@ -43,8 +43,9 @@ for gamma = 2.^(-1.5:0.4:0.5)
     % fprintf('aug a img\n');
     augImg = imgaussfilt(imadjust(image, [], [], gamma), sigma+eps);
     % augImg = imNormalize(augImg);
-    C = chnsCompute(augImg);
-    C = cat(3,C.data{:});
+    % C = chnsCompute(augImg);
+    % C = cat(3,C.data{:});
+    C = computeDescriptor(augImg);
     chns = cat(3, chns, C);
     % figure; montage2(C);
   end

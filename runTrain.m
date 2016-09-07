@@ -9,14 +9,13 @@ data_dir = '~/Projects/ZED/D1-P1-L1';
 
 %%
 bank = generatePlaceBank(transforms);
+bank = bank(5);
 
 %%
-bank = bank(5);
 detectors = cell(1,size(bank,1));
 for i = 1:size(bank,1)
   
   B = bank(i);
-  
   
   % train seed detectors
   detectors{i} = generateSeedDetectors(imread(filenames{B}), [64 64]);
@@ -36,9 +35,16 @@ for i = 1:size(bank,1)
 
   fprintf('%d nearby image(s) found\n', length(nearbyTransforms));
   
-  
-  for j = 1:size(detectors{i},1)
+  %{
+  xys = zeros(length(nearbyFilenames), size(detectors{i},1), 3);
+  for nn = 1:length(nearbyFilenames)
+    image = imread(nearbyFilenames{nn});
+    descriptor = computeDescriptor(image);
+    for d = 1:size(detectors{i},1)
+      xys(nn, d,:) = detect(descriptor, detectors{i}(d,:));
+    end
   end
+  %}
   
 end
 

@@ -1,14 +1,13 @@
 function X = detect(I, W)
 
-t = 0.2;
-
 if ischar(I)
   I = imread(I);
 end
 
 if size(I,3) == 3
-  I = chnsCompute(I);
-  I = cat(3, I.data{:});
+  % I = chnsCompute(I);
+  % I = cat(3, I.data{:});
+  I = computeDescriptor(I);
 end
 
 if isvector(W)
