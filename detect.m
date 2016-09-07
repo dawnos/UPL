@@ -20,7 +20,7 @@ end
 C = tensorConv2(I, W);
 
 M = max(max(C));
-[I, J] = ind2sub(size(C), find(C==M));
+[y, x] = ind2sub(size(C), find(C==M));
 
-X = [I J M];
+X = [x y M];
 

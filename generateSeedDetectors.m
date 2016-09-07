@@ -54,7 +54,7 @@ fprintf('Augmentation and ACF takes %f second(s)\n', toc);
 fprintf('Training detectors...\n');
 detectors = zeros(size(posbbs,1), winWidth/4 * winHeight/4 * 10);
 
-for i = 1:size(posbbs,1)
+parfor i = 1:size(posbbs,1)
   tic;
   posbb = posbbs(i,:);
   negbb = negbbs(R(i,:) < iou,:);
