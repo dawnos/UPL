@@ -1,7 +1,7 @@
 function detectors = generateSeedDetectors(image, ssize)
 
 stride = 8;
-negCount = 1000;
+negCount = 100;
 iou = 0.5;
    
 if ischar(image)
@@ -18,8 +18,8 @@ Nw = (height-winHeight)/stride+1;
 Nh = (width-winWidth)/stride+1;
 
 posbbs = [...
-  reshape(repmat(1:((width-winWidth)/stride+1), Nw, 1), [], 1)...
-  reshape(repmat(1:((height-winHeight)/stride+1), 1, Nh), [], 1)...
+  reshape(repmat(1:stride:(width-winWidth+1), Nw, 1), [], 1)...
+  reshape(repmat(1:stride:(height-winHeight+1), 1, Nh), [], 1)...
   repmat(winWidth, Nw * Nh, 1)...
   repmat(winHeight, Nw * Nh, 1)...
   ];
@@ -42,7 +42,7 @@ for gamma = 2.^(-1.5:0.4:0.5)
   for sigma = 0:0.5:2
     % fprintf('aug a img\n');
     augImg = imgaussfilt(imadjust(image, [], [], gamma), sigma+eps);
-    augImg = imNormalize(augImg);
+    % augImg = imNormalize(augImg);
     C = chnsCompute(augImg);
     C = cat(3,C.data{:});
     chns = cat(3, chns, C);
