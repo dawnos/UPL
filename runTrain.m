@@ -3,19 +3,21 @@
 run startup.m;
 
 %%
-data_dir = '~/Projects/ZED/D1-P1-L1';
+% data_dir = '~/Projects/ZED/D1-P1-L1';
+data_dir = '~/DataBlock/ZED/D1-P1-L1';
 [filenames, transforms] = readImageFilenames(data_dir);
 
 %%
 bank = generatePlaceBank(transforms);
 
 %%
-bank = bank(1);
+bank = bank(5);
 detectors = cell(1,size(bank,1));
 for i = 1:size(bank,1)
   
   B = bank(i);
   
+  %{
   % train seed detectors
   detectors{i} = generateSeedDetectors(imread(filenames{B}), [64 64]);
   
@@ -33,6 +35,7 @@ for i = 1:size(bank,1)
   end
 
   fprintf('%d nearby image(s) found\n', length(nearbyTransforms));
+  %}
   
   for j = 1:size(detectors{i},1)
   end
