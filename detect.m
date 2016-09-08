@@ -5,8 +5,6 @@ if ischar(I)
 end
 
 if size(I,3) == 3
-  % I = chnsCompute(I);
-  % I = cat(3, I.data{:});
   I = computeDescriptor(I);
 end
 

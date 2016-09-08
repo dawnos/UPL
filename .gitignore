@@ -31,3 +31,8 @@
 # Matlab
 *~
 *.mat
+
+#
+*.png
+*.jpg
+*.zip

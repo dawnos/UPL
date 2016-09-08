@@ -1,4 +1,4 @@
-function detectors = generateSeedDetectors(image, ssize)
+function [detectors, bbox] = generateSeedDetectors(image, ssize)
 
 stride = 8;
 negCount = 100;
@@ -32,6 +32,8 @@ negbbs = [...
   ];
 
 R = bboxOverlapRatio(posbbs, negbbs);
+
+bbox = posbbs;
 
 posbbs = ceil(posbbs / 4);
 negbbs = ceil(negbbs / 4);
