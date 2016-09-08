@@ -84,7 +84,7 @@ for i = 1:size(bank,1)
   
   
   %% 3.1)
-  depth = zeros(size(xys,1), size(xys1, 2));
+  depth = zeros(size(positions1,1), size(positions1, 2));
   nearbyDepths = cell(size(nearbyFilenames));
   for j = 1:length(nearbyFilenames)
     fn = nearbyFilenames{j};
@@ -133,7 +133,7 @@ for i = 1:size(bank,1)
   geo_check = zeros(size(detector2, 1),1);
   for j = 1:size(detector2,1)
  
-    if isempty(find(reprojerr(j,:) > 16, 1)) && sum(reprojerr(j,:)) / length(nearbyFilenames) < 8
+    if isempty(find(reprojerr(j,:) > 64, 1)) && sum(reprojerr(j,:)) / length(nearbyFilenames) < 32
       geo_check(j) = 1;
     end
   end
