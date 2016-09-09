@@ -3,8 +3,8 @@
 run startup.m;
 
 %%
-data_dir = '~/Projects/ZED/D1-P1-L1';
-% data_dir = '~/DataBlock/ZED/D1-P1-L1';
+% data_dir = '~/Projects/ZED/D1-P1-L1';
+data_dir = '~/DataBlock/ZED/D1-P1-L1';
 [filenames, transforms] = readImageFilenames(data_dir);
 
 %%
@@ -34,7 +34,7 @@ for i = 1:size(bank,1)
   B = bank(i);
   
   % 1) train seed detectors
-  [detector, bbox] = generateSeedDetectors(imread(filenames{B}), [64 64]);
+  %   [detector, bbox] = generateSeedDetectors(imread(filenames{B}), [64 64]);
   
     
   %% 2)
@@ -55,13 +55,13 @@ for i = 1:size(bank,1)
   
   %%
   figure;
-  positions = zeros(length(nearbyFilenames), size(detectors{i},1), 3);
+  positions = zeros(length(nearbyFilenames), size(detector,1), 3);
   for nn = 1:length(nearbyFilenames)
     tic;
     image = imread(nearbyFilenames{nn});
     descriptor = computeDescriptor(image);
-    for d = 1:size(detectors{i},1)
-      positions(nn, d,:) = detect(descriptor, detectors{i}(d,:));
+    for d = 1:size(detector,1)
+      positions(nn, d,:) = detect(descriptor, detector(d,:));
       positions(nn, d,1) = positions(nn, d,1) * 4;
       positions(nn, d,2) = positions(nn, d,2) * 4;
     end
@@ -92,8 +92,8 @@ for i = 1:size(bank,1)
     nearbyDepths{j} = imread(fn);
     nearbyDepths{j} = double(nearbyDepths{j}(:,:,1))/1000;
     for k = 1:size(detector1,1)
-      % depth(j,k) = mean(nonzeros(imcrop(nearbyDepths{j}, bbox1(k,:))));
-      depth(j,k) = nearbyDepths{j}(bbox1(k,2)+bbox1(k,4), bbox1(k,1)+bbox1(k,3));
+      depth(j,k) = mean(nonzeros(imcrop(nearbyDepths{j}, bbox1(k,:))));
+      % depth(j,k) = nearbyDepths{j}(bbox1(k,2)+bbox1(k,4), bbox1(k,1)+bbox1(k,3));
       if depth(j,k) == 0
         depth(j,k) = NaN;
       end
@@ -136,7 +136,7 @@ for i = 1:size(bank,1)
   geo_check = zeros(size(detector2, 1),1);
   for j = 1:size(detector2,1)
  
-    if isempty(find(reprojerr(j,:) > 8, 1)) && sum(reprojerr(j,:)) / length(nearbyFilenames) < 4
+    if isempty(find(reprojerr(j,:) > 16, 1)) && sum(reprojerr(j,:)) / length(nearbyFilenames) < 8
       geo_check(j) = 1;
     end
   end

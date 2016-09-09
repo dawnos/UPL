@@ -1,7 +1,7 @@
 function [detectors, bbox] = generateSeedDetectors(image, ssize)
 
 stride = 8;
-negCount = 100;
+negCount = 1000;
 iou = 0.5;
    
 if ischar(image)
@@ -57,7 +57,7 @@ fprintf('Augmentation and ACF takes %f second(s)\n', toc);
 fprintf('Training detectors...\n');
 detectors = zeros(size(posbbs,1), winWidth/4 * winHeight/4 * 10);
 
-parfor i = 1:size(posbbs,1)
+for i = 1:size(posbbs,1)
   tic;
   posbb = posbbs(i,:);
   negbb = negbbs(R(i,:) < iou,:);
