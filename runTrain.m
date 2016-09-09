@@ -31,7 +31,6 @@ detectors = cell(1,size(bank,1));
 %%
 for i = 1:size(bank,1)
   
-
   B = bank(i);
   
   % 1) train seed detectors
@@ -93,7 +92,11 @@ for i = 1:size(bank,1)
     nearbyDepths{j} = imread(fn);
     nearbyDepths{j} = double(nearbyDepths{j}(:,:,1))/1000;
     for k = 1:size(detector1,1)
-      depth(j,k) = mean(nonzeros(imcrop(nearbyDepths{j}, bbox1(k,:))));
+      % depth(j,k) = mean(nonzeros(imcrop(nearbyDepths{j}, bbox1(k,:))));
+      depth(j,k) = nearbyDepths{j}(bbox1(k,2)+bbox1(k,4), bbox1(k,1)+bbox1(k,3));
+      if depth(j,k) == 0
+        depth(j,k) = NaN;
+      end
     end
   end
   pass2 = find(max(isnan(depth))==0);
@@ -133,7 +136,7 @@ for i = 1:size(bank,1)
   geo_check = zeros(size(detector2, 1),1);
   for j = 1:size(detector2,1)
  
-    if isempty(find(reprojerr(j,:) > 64, 1)) && sum(reprojerr(j,:)) / length(nearbyFilenames) < 32
+    if isempty(find(reprojerr(j,:) > 8, 1)) && sum(reprojerr(j,:)) / length(nearbyFilenames) < 4
       geo_check(j) = 1;
     end
   end
