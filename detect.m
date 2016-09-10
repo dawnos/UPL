@@ -1,4 +1,4 @@
-function X = detect(I, W)
+function [position, score] = detect(I, W)
 
 if ischar(I)
   I = imread(I);
@@ -19,5 +19,6 @@ C = tensorConv2(I, W);
 M = max(max(C));
 [y, x] = ind2sub(size(C), find(C==M));
 
-X = [x y M];
+position = [x y];
+score = M;
 

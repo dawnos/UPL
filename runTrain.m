@@ -2,10 +2,11 @@
 %%
 run startup.m;
 
+
 %%
-data_dir = '~/Projects/ZED/D1-P1-L1';
-% data_dir = '~/DataBlock/ZED/D1-P1-L1';
+data_dir = '~/Projects/datasets/ZED/D1-P1-L1';
 [filenames, transforms] = readImageFilenames(data_dir);
+
 
 %%
 zed = ini2struct('./SN2906.conf');
@@ -21,25 +22,24 @@ rightCamParam = cameraParameters('IntrinsicMatrix', [...
   ]);
 stereoCamParam = stereoParameters(leftCamParam, rightCamParam, eye(3), [str2double(zed.stereo.baseline) 0 0]);
 
+
 %%
 bank = generatePlaceBank(transforms);
 bank = bank(5);
 
 %%
 detectors = cell(1,size(bank,1));
-
-%%
 for i = 1:size(bank,1)
   
   B = bank(i);
   
-  % 1) train seed detectors
+  
+  %% 1) train seed detectors
   [detector, bbox] = generateSeedDetectors(imread(filenames{B}), [64 64]);
   
     
   %% 2)
-  
-  % find nearby images
+  %% 2.3)find nearby images
   nearbyFilenames = {};
   nearbyImages = {};
   nearbyACFs = {};
@@ -55,17 +55,15 @@ for i = 1:size(bank,1)
   end
   fprintf('%d nearby image(s) found\n', length(nearbyTransforms));
   
-  %%
+  %% 2.2)
   figure;
-  positions = zeros(length(nearbyFilenames), size(detector,1), 3);
+  positions = zeros(length(nearbyFilenames), size(detector,1), 2);
+  scores = zeros(length(nearbyFilenames), size(detector,1));
   for nn = 1:length(nearbyFilenames)
     tic;
-    % image = imread(nearbyFilenames{nn});
-    % descriptor = computeDescriptor(image);
     for d = 1:size(detector,1)
-      positions(nn, d,:) = detect(nearbyACFs{nn}, detector(d,:));
-      positions(nn, d,1) = positions(nn, d,1) * 4;
-      positions(nn, d,2) = positions(nn, d,2) * 4;
+      [positions(nn, d,:), scores(nn,d)] = detect(nearbyACFs{nn}, detector(d,:));
+      positions(nn, d,:) = positions(nn, d,:) * 4;
     end
     subplot(ceil(length(nearbyFilenames) / 5), 5, nn);
     imshow(nearbyImages{nn}); hold on;
@@ -73,17 +71,21 @@ for i = 1:size(bank,1)
     fprintf('Detection on %s done in %f second(s)\n', nearbyFilenames{nn}, toc);
   end
 
-  %%
-  [~, notpass1]=ind2sub(size(positions), find(positions(:,:,3)<0.0));
+  %% 2.3)
+  bboxid = 1:size(bbox,1);
+  [~, notpass1]=ind2sub(size(scores), find(scores(:,:)<-0.5));
   notpass1 = unique(notpass1);
   pass1 = ones(size(positions,2),1);
   pass1(notpass1)=0;
   pass1 = find(pass1 == 1);
   detector1 = detector(pass1, :);
   positions1 = positions(:,pass1, :);
+  scores1 = scores(:,pass1);
   bbox1 = bbox(pass1, :);
+  bboxid1 = bboxid(pass1);
   
   
+  %% 3)
   %% 3.1)
   depth = zeros(size(positions1,1), size(positions1, 2));
   nearbyDepths = cell(size(nearbyFilenames));
@@ -94,8 +96,8 @@ for i = 1:size(bank,1)
     nearbyDepths{j} = imread(fn);
     nearbyDepths{j} = double(nearbyDepths{j}(:,:,1))/1000;
     for k = 1:size(detector1,1)
-      depth(j,k) = mean(nonzeros(imcrop(nearbyDepths{j}, bbox1(k,:))));
-      % depth(j,k) = nearbyDepths{j}(bbox1(k,2)+bbox1(k,4), bbox1(k,1)+bbox1(k,3));
+      % depth(j,k) = mean(nonzeros(imcrop(nearbyDepths{j}, bbox1(k,:))));
+      depth(j,k) = nearbyDepths{j}(bbox1(k,2)+bbox1(k,4)/2, bbox1(k,1)+bbox1(k,3)/2);
       if depth(j,k) == 0
         depth(j,k) = NaN;
       end
@@ -104,7 +106,9 @@ for i = 1:size(bank,1)
   pass2 = find(max(isnan(depth))==0);
   detector2 = detector1(pass2, :);
   positions2 = positions1(:,pass2, :);
+  scores2 = scores1(:,pass2);
   bbox2 = bbox1(pass2, :);
+  bboxid2 = bboxid1(pass2);
   depth = depth(:,pass2);
   
   %% 3.2)
@@ -127,9 +131,9 @@ for i = 1:size(bank,1)
       p0 = p0 + squeeze(p3d(k,j,:));
     end
     p0 = p0 / length(nearbyFilenames);
-    p = lsqnonlin(@(p)projFunc(p, reshape(positions2(:,j,1:2),2,[]), transforms(:,pass2),A), p0);
+    p = lsqnonlin(@(p)projFunc(p, reshape(positions2(:,j,:),2,[]), transforms(:,pass2),A), p0);
     
-    err = projFunc(p, reshape(positions2(:,j,1:2),2,[]), transforms(:,pass2),A);
+    err = projFunc(p, reshape(positions2(:,j,:),2,[]), transforms(:,pass2),A);
     err = reshape(err, [], 2);
     reprojerr(j,:) = sqrt(err(:,1) .^2 + err(:,2) .^ 2);
   end
@@ -144,24 +148,29 @@ for i = 1:size(bank,1)
   end
   pass3 = find(geo_check == 1);
   detector3 = detector2(pass3, :);
-  bbox3 = bbox2(pass3,:);
   positions3 = positions2(:,pass3,:);
+  scores3 = scores2(:,pass3);
+  bbox3 = bbox2(pass3,:);
+  bboxid3 = bboxid2(pass3);
   figure;
+  I = imread(filenames{B});
+  I = insertObjectAnnotation(I, 'rectangle', ...
+    bbox3, cellstr(num2str(bboxid3')), ...
+    'Color', 'r', 'FontSize', 8);
+  imshow(I);
+  %{
   imshow(imread(filenames{B})); hold on;
   for j = 1:size(bbox3,1)
     rectangle('Position', bbox3(j,:), 'EdgeColor', 'r');
   end
+  %}
   
   %% 3.5)
   figure;
-  nearbyImages = cell(length(nearbyFilenames), 1);
-  for j = 1:length(nearbyFilenames)
-    nearbyImages{j} = imread(nearbyFilenames{j});
-  end
   for j = 1:size(detector3,1)
     clf;
     for k = 1:length(nearbyFilenames)
-      subplot(ceil(length(nearbyFilenames)/3), 3, k); hold on;
+      subplot(ceil(length(nearbyFilenames)/4), 4, k); hold on;
       imshow(nearbyImages{k});
       rectangle('Position', [positions3(k,j,1) positions3(k,j,2) 64 64], 'EdgeColor', 'r');
     end
