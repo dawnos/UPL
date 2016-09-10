@@ -15,8 +15,12 @@ if isvector(W)
 end
 
 C = tensorConv2(I, W);
+figure;
 imagesc(C); hold on;
+%{
 rectangle('Position', rect, 'EdgeColor', 'red');
+%}
 axis equal;
 X = C;
+
 

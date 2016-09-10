@@ -1,11 +1,11 @@
 function [detectors, bbox] = generateSeedDetectors(image, ssize)
 
 stride = 8;
-negCount = 1000;
-iou = 0.5;
+negCount = 100;
+iou = 0.1;
    
 if ischar(image)
-  image = imread(image) / 255;
+  image = imread(image);
 end
 
 winWidth = ssize(1);
@@ -17,6 +17,7 @@ width = SS(2);
 Nw = (height-winHeight)/stride+1;
 Nh = (width-winWidth)/stride+1;
 
+%%
 posbbs = [...
   reshape(repmat(1:stride:(width-winWidth+1), Nw, 1), [], 1)...
   reshape(repmat(1:stride:(height-winHeight+1), 1, Nh), [], 1)...
@@ -38,6 +39,7 @@ bbox = posbbs;
 posbbs = ceil(posbbs / 4);
 negbbs = ceil(negbbs / 4);
 
+%%
 chns = [];
 tic;
 for gamma = 2.^(-1.5:0.4:0.5)
@@ -57,20 +59,30 @@ fprintf('Augmentation and ACF takes %f second(s)\n', toc);
 fprintf('Training detectors...\n');
 detectors = zeros(size(posbbs,1), winWidth/4 * winHeight/4 * 10);
 
-for i = 1:size(posbbs,1)
+%%
+parfor i = 1:size(posbbs,1)
   tic;
+  
+  %%
   posbb = posbbs(i,:);
   negbb = negbbs(R(i,:) < iou,:);
-  
+  %%
   pos = tensorCrops(chns, posbb);
-  pos = reshape(pos, [], winWidth/4 * winHeight/4 * 10);
+  pos = reshape(pos, winWidth/4 * winHeight/4 * 10, []);
   
+  %%
   neg = tensorCrops(chns, negbb);
-  neg = reshape(neg, [], winWidth/4 * winHeight/4 * 10);
+  neg = reshape(neg, winWidth/4 * winHeight/4 * 10, []);
   
-  label = [zeros(size(pos,1), 1);ones(size(neg,1), 1)];
-  data = [pos;neg];
-  detector = train(label, sparse(data));
+  % label = [ones(size(pos,2), 1); zeros(size(neg,2), 1)];
+  % data = [pos neg]';
+  %%
+  label = [ones(size(pos,2), 1); -ones(size(neg,2), 1)];
+  data =  [pos neg];
+  %%
+  % detector = train(label, sparse(data));
+  detector = train(label, sparse(double(data)), '-w-1 1.0 -w1 100', 'col');
+  % detector = train(label, sparse(data), '-B 1');
   % detector = train(label, sparse(data), '-n 11');
   detectors(i,:) = detector.w;
   fprintf('detector %d/%d takes %f second(s)\n', i, size(posbbs,1), toc);

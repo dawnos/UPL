@@ -3,8 +3,8 @@
 run startup.m;
 
 %%
-% data_dir = '~/Projects/ZED/D1-P1-L1';
-data_dir = '~/DataBlock/ZED/D1-P1-L1';
+data_dir = '~/Projects/ZED/D1-P1-L1';
+% data_dir = '~/DataBlock/ZED/D1-P1-L1';
 [filenames, transforms] = readImageFilenames(data_dir);
 
 %%
@@ -34,20 +34,22 @@ for i = 1:size(bank,1)
   B = bank(i);
   
   % 1) train seed detectors
-  %   [detector, bbox] = generateSeedDetectors(imread(filenames{B}), [64 64]);
+  [detector, bbox] = generateSeedDetectors(imread(filenames{B}), [64 64]);
   
     
   %% 2)
   
   % find nearby images
   nearbyFilenames = {};
+  nearbyImages = {};
   nearbyACFs = {};
   nearbyTransforms = [];
   for j = 1:size(transforms,2)
     if norm(transforms(1:3,B) - transforms(1:3,j)) < 1.0
       nearbyFilenames{end+1} = filenames{j};
+      nearbyImages{end+1} = imread(nearbyFilenames{end});
       nearbyTransforms = [nearbyTransforms transforms(:,j)];
-      acf = chnsCompute(imread(nearbyFilenames{end}));
+      acf = chnsCompute(nearbyImages{end});
       nearbyACFs{end+1} = cat(3,acf.data{:});
     end
   end
@@ -58,21 +60,21 @@ for i = 1:size(bank,1)
   positions = zeros(length(nearbyFilenames), size(detector,1), 3);
   for nn = 1:length(nearbyFilenames)
     tic;
-    image = imread(nearbyFilenames{nn});
-    descriptor = computeDescriptor(image);
+    % image = imread(nearbyFilenames{nn});
+    % descriptor = computeDescriptor(image);
     for d = 1:size(detector,1)
-      positions(nn, d,:) = detect(descriptor, detector(d,:));
+      positions(nn, d,:) = detect(nearbyACFs{nn}, detector(d,:));
       positions(nn, d,1) = positions(nn, d,1) * 4;
       positions(nn, d,2) = positions(nn, d,2) * 4;
     end
     subplot(ceil(length(nearbyFilenames) / 5), 5, nn);
-    imshow(imread(nearbyFilenames{nn})); hold on;
+    imshow(nearbyImages{nn}); hold on;
     plot(positions(nn,:,1), positions(nn,:,2), '*');
     fprintf('Detection on %s done in %f second(s)\n', nearbyFilenames{nn}, toc);
   end
 
   %%
-  [~, notpass1]=ind2sub(size(positions), find(positions(:,:,3)<0.2));
+  [~, notpass1]=ind2sub(size(positions), find(positions(:,:,3)<0.0));
   notpass1 = unique(notpass1);
   pass1 = ones(size(positions,2),1);
   pass1(notpass1)=0;
