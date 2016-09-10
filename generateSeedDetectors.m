@@ -79,10 +79,10 @@ parfor i = 1:size(posbbs,1)
   data = double(data);
   
   %%
-  detector = train(label, sparse(data));
-  % detector = train(label, sparse(data), ['-w-1 1 -w1 ' num2str(negCount)]);
-  % detector = train(label, sparse(data), '-B 1');
-  % detector = train(label, sparse(data), '-n 11');
+  detector = train(label, sparse(data) ...
+    );
+  % , ['-w-1 1 -w1 ' num2str(negCount)]);
+  % , '-B 1');
   
   detectors(i,:) = detector.w;
   fprintf('detector %d/%d takes %f second(s)\n', i, size(posbbs,1), toc);
