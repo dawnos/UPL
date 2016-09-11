@@ -20,3 +20,11 @@ if 1
   transforms = transforms(:,KF);
   filenames = filenames(KF);
 end
+
+transforms1 = cell(size(transforms,2),1);
+for i=1:size(transforms,2)
+  R = quat2rotm(transforms([5 6 7 4],i));
+  t = transforms(1:3,i);
+  transforms1{i} = [R t;0 0 0 1];
+end
+transforms = transforms1;

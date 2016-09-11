@@ -1,4 +1,4 @@
-function [detectors, bbox] = generateSeedDetectors(image, ssize)
+function [detectors, bbox] = trainSeedDetectors(image, ssize)
 
 % Settings
 stride = 8;
@@ -36,7 +36,7 @@ negbbs = [...
 
 R = bboxOverlapRatio(posbbs, negbbs);
 
-bbox = posbbs;
+bbox = [posbbs (1:size(posbbs,1))'];
 
 posbbs = ceil(posbbs / 4);
 negbbs = ceil(negbbs / 4);
@@ -54,11 +54,10 @@ for gamma = 2.^(-1.5:0.4:0.5)
 end
 fprintf('Augmentation and ACF takes %f second(s)\n', toc);
 
-fprintf('Training detectors...\n');
-detectors = zeros(size(posbbs,1), winWidth/4 * winHeight/4 * 10);
-
 
 %% Train
+fprintf('Training detectors...\n');
+detectors = zeros(size(posbbs,1), winWidth/4 * winHeight/4 * 10 + 1);
 parfor i = 1:size(posbbs,1)
   tic;
   
@@ -76,13 +75,12 @@ parfor i = 1:size(posbbs,1)
   %%
   label = [ones(size(pos,2), 1); -ones(size(neg,2), 1)];
   data =  [pos neg]';
-  data = double(data);
+  data = sparse(double(data));
   
   %%
-  detector = train(label, sparse(data) ...
-    );
-  % , ['-w-1 1 -w1 ' num2str(negCount)]);
-  % , '-B 1');
+  % detector = train(label, data);
+  detector = train(label, data , ['-w-1 1 -w1 ' num2str(negCount)]);
+  % detector = train(label, data , '-B 1');
   
   detectors(i,:) = detector.w;
   fprintf('detector %d/%d takes %f second(s)\n', i, size(posbbs,1), toc);
