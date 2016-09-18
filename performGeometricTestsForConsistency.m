@@ -1,32 +1,40 @@
-function  [newDetector, newBbox, newPositions, newScores] = ...
+function  [newDetector, newBbox, newPositions, newScores, locations] = ...
   performGeometricTestsForConsistency(...
   detector, ...
   bbox, ...
   positions, ...
   scores, ...
-  filenames, ...
   nearbyFilenames, ...
   nearbyTransforms, ...
   nearbyImages, ...
-  placeId,...
+  placeImage,...
+  placeTransform,...
   stereoCamParam)
 
 
+for i = 1:length(nearbyTransforms)
+  nearbyTransforms{i} = placeTransform \ nearbyTransforms{i};
+  nearbyTransforms{i} = [0 -1 0 0;0 0 -1 0;1 0 0 0;0 0 0 1] * ...
+    nearbyTransforms{i} * [0 0 1 0;-1 0 0 0;0 -1 0 0;0 0 0 1];
+end
+
 %%
 K = stereoCamParam.CameraParameters1.IntrinsicMatrix;
-if 1
+if 0
   P0 = initialPointEstimation1(...
-    bbox, positions, nearbyFilenames, K);
+    bbox, positions, nearbyFilenames, nearbyTransforms, K);
 else
-  % P0 = initialPointEstimation2(positions, nearbyTransforms, K);
+  P0 = initialPointEstimation2(positions, nearbyTransforms, K);
 end
 
 %%
 reprojerr = zeros(size(detector, 1),length(nearbyFilenames));
+locations = zeros(3,size(detector,1));
 for j = 1:size(detector,1)
   fprintf('Geometric check: %d\n', j);
   if isempty(nonzeros(isnan(P0(:,j))))
-    [p, ~, err] = lsqnonlin(@(p)projFunc(p, squeeze(positions(:,j,:)), nearbyTransforms,K), P0(:,j));
+    [locations(:,j), ~, err] = ...
+      lsqnonlin(@(p)projFunc(p, squeeze(positions(:,j,:)), nearbyTransforms,K), P0(:,j));
     % err = projFunc(p, squeeze(positions(:,j,:)), nearbyTransforms,A);
     err = reshape(err, [], 2);
     reprojerr(j,:) = sqrt(err(:,1) .^2 + err(:,2) .^ 2);
@@ -49,15 +57,16 @@ newDetector = detector(pass, :);
 newPositions = positions(:,pass,:);
 newScores = scores(:,pass);
 newBbox = bbox(pass,:);
+locations = locations(:,pass);
 
 figure;
-I = imread(filenames{placeId});
-I = insertObjectAnnotation(I, 'rectangle', ...
+I = insertObjectAnnotation(placeImage, 'rectangle', ...
   newBbox(:,1:4), cellstr(num2str(newBbox(:,5))), ...
   'Color', 'r', 'FontSize', 8);
 imshow(I);
 
 %%
+%{
 figure;
 for j = 1:size(newDetector,1)
   clf;
@@ -69,12 +78,13 @@ for j = 1:size(newDetector,1)
   title(['landmark ' num2str(j, '%03d')]);
   print(['final/landmark_' num2str(j, '%03d')], '-dpng');
 end
+%}
 
 
 end
 
 
-function P0 = initialPointEstimation1(bbox, positions, nearbyFilenames, A)
+function P0 = initialPointEstimation1(bbox, positions, nearbyFilenames, nearbyTransforms, K)
 
 depth = zeros(size(positions,1), size(positions, 2));
 nearbyDepths = cell(size(nearbyFilenames));
@@ -93,11 +103,39 @@ for i = 1:length(nearbyFilenames)
   end
 end
 
-p3d = zeros(size(positions, 1), size(positions, 2), 3);
-p3d(:,:,1) = (positions(:,:,1) - A(1,3)) /A(1,1) .* depth;
-p3d(:,:,2) = (positions(:,:,2) - A(2,3)) /A(2,2) .* depth;
-p3d(:,:,3) = depth;
-P0 = squeeze(sum(p3d,1))' / length(nearbyFilenames);
+p3d = zeros(3,size(positions, 1), size(positions, 2));
+p3d(1,:,:) = (positions(:,:,1) - K(1,3)) /K(1,1) .* depth;
+p3d(2,:,:) = (positions(:,:,2) - K(2,3)) /K(2,2) .* depth;
+p3d(3,:,:) = depth;
+
+%{
+figure; hold on;
+for i=1:length(nearbyTransforms)
+  plot3(...
+    squeeze(p3d(1,i,1:10:end)), ...
+    squeeze(p3d(2,i,1:10:end)), ...
+    squeeze(p3d(3,i,1:10:end)), ...
+    '*', 'Color', rand([1 3]));
+end
+%}
+
+p3d = permute(p3d, [1 3 2]);
+for i=1:length(nearbyTransforms)
+  p3d(:,:,i) = nearbyTransforms{i}(1:3,1:3) * p3d(:,:,i) + ...
+    repmat(nearbyTransforms{i}(1:3,4), 1, size(positions, 2));
+end
+
+%{
+for i=1:length(nearbyTransforms)
+  plot3(...
+    squeeze(p3d(1,1:10:end,i)), ...
+    squeeze(p3d(2,1:10:end,i)), ...
+    squeeze(p3d(3,1:10:end,i)), ...
+    '*', 'Color', 'black');
+end
+%}
+
+P0 = squeeze(sum(p3d,3)) / length(nearbyTransforms);
 
 end
 
@@ -121,7 +159,11 @@ for i = 1:size(positions,2)
     A = [A;r1-ux*r3;r2-vy*r3];
     b = [b;ux*t3-t1;vy*t3-t2];
   end
-  P0 = [P0 A\b];
+  p = A\b;
+  if p(3) < 0
+    p = -p;
+  end
+  P0 = [P0 p];
 end
 
 end

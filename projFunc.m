@@ -8,7 +8,10 @@ for i = 1:size(positions,1)
   %   R = quat2rotm(q);
   %   p(:,i) = R\(x-t);
   
-  p(:,i) = transforms{i}(1:3,1:3)\(x-transforms{i}(1:3,4));
+  % T = transforms{i};% * [0 0 1 0;-1 0 0 0;0 -1 0 0;0 0 0 1];
+  p(:,i) = transforms{i}(1:3,1:3) \ x - transforms{i}(1:3,4);
+  % p(:,i) = T(1:3,1:3)\(x-T(1:3,4));
+  % p(:,i) = [0 0 1;-1 0 0;0 -1 0] \ p(:,i);
 end
 
 pp = A * p;

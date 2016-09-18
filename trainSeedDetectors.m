@@ -15,8 +15,8 @@ SS = size(image);
 height = SS(1);
 width = SS(2);
 
-Nw = (height-winHeight)/stride+1;
-Nh = (width-winWidth)/stride+1;
+Nw = floor((height-winHeight)/stride)+1;
+Nh = floor((width-winWidth)/stride)+1;
 
 
 %% Generate bounding box
@@ -57,7 +57,7 @@ fprintf('Augmentation and ACF takes %f second(s)\n', toc);
 
 %% Train
 fprintf('Training detectors...\n');
-detectors = zeros(size(posbbs,1), winWidth/4 * winHeight/4 * 10 + 1);
+detectors = zeros(size(posbbs,1), winWidth/4 * winHeight/4 * 10);
 parfor i = 1:size(posbbs,1)
   tic;
   
