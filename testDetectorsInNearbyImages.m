@@ -1,7 +1,9 @@
 
 % Step 2
-function [newDetector, newBbox, newPositions, newScores, nearbyFilenames, nearbyTransforms, nearbyImages] = ...
-  testDetectorsInNearbyImages(detector, bbox, filenames, transforms, placeId)
+function [newDetector, newPositions, newScores, ...
+    nearbyFilenames, nearbyTransforms, nearbyImages] = ...
+  testDetectorsInNearbyImages(...
+  detector, filenames, transforms, placeId)
 
   %% 1) find nearby images
   nearbyFilenames = {};
@@ -26,13 +28,15 @@ function [newDetector, newBbox, newPositions, newScores, nearbyFilenames, nearby
   for nn = 1:length(nearbyFilenames)
     tic;
     for d = 1:size(detector,1)
-      [positions(nn, d,:), scores(nn,d)] = detect(nearbyACFs{nn}, detector(d,:));
+      [positions(nn, d,:), scores(nn,d)] = ...
+          detect(nearbyACFs{nn}, detector(d,:));
       positions(nn, d,:) = positions(nn, d,:) * 4;
     end
     subplot(ceil(length(nearbyFilenames) / 5), 5, nn);
     imshow(nearbyImages{nn}); hold on;
     plot(positions(nn,:,1), positions(nn,:,2), '*');
-    fprintf('Detection on %s done in %f second(s)\n', nearbyFilenames{nn}, toc);
+    fprintf('Detection on %s done in %f second(s)\n', ...
+        nearbyFilenames{nn}, toc);
   end
 
   %% 3)
@@ -45,6 +49,5 @@ function [newDetector, newBbox, newPositions, newScores, nearbyFilenames, nearby
   newDetector = detector(pass, :);
   newPositions = positions(:,pass, :);
   newScores = scores(:,pass);
-  newBbox = bbox(pass, :);
   % bboxid1 = bboxid(pass1);
   

@@ -1,4 +1,4 @@
-function [detectors, bbox] = trainSeedDetectors(image, ssize)
+function [detectors] = trainSeedDetectors(image, ssize)
 
 % Settings
 stride = 8;
@@ -36,7 +36,7 @@ negbbs = [...
 
 R = bboxOverlapRatio(posbbs, negbbs);
 
-bbox = [posbbs (1:size(posbbs,1))'];
+% bbox = [posbbs (1:size(posbbs,1))'];
 
 posbbs = ceil(posbbs / 4);
 negbbs = ceil(negbbs / 4);
